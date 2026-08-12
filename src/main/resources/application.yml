@@ -8,6 +8,7 @@ spring:
     password: ${DB_PASSWORD:localpassword}
 
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: validate
     properties:
