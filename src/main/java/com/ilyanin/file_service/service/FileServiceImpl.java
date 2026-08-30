@@ -6,9 +6,13 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ilyanin.file_service.api.dto.FileMetadataResponse;
 import com.ilyanin.file_service.domain.AggregateType;
 import com.ilyanin.file_service.domain.EventType;
+import com.ilyanin.file_service.event.FileUploadedEvent;
+import com.ilyanin.file_service.exception.EventSerializationException;
 import com.ilyanin.file_service.exception.FileStorageException;
 import com.ilyanin.file_service.persistence.entity.FileEntity;
 import com.ilyanin.file_service.persistence.entity.OutboxEventEntity;
@@ -16,7 +20,6 @@ import com.ilyanin.file_service.persistence.repository.FileRepository;
 import com.ilyanin.file_service.persistence.repository.OutboxEventRepository;
 
 import jakarta.transaction.Transactional;
-
 @Service
 public class FileServiceImpl {
 
@@ -25,19 +28,22 @@ public class FileServiceImpl {
     private final OutboxEventRepository outboxEventRepository;
     private final FileCacheService fileCacheService;
     private final Mapper mapper;
+    private final ObjectMapper objectMapper;
     
     public FileServiceImpl(
         FileStorageService fileStorageService, 
         FileRepository fileRepository,
         OutboxEventRepository outboxEventRepository,
         FileCacheService fileCacheService,
-        Mapper mapper
+        Mapper mapper,
+        ObjectMapper objectMapper
     ) {
         this.fileStorageService = fileStorageService;
         this.fileRepository = fileRepository;
         this.outboxEventRepository = outboxEventRepository;
         this.fileCacheService = fileCacheService;
         this.mapper = mapper;
+        this.objectMapper = objectMapper;
     }
 
 
@@ -59,11 +65,27 @@ public class FileServiceImpl {
         );
         FileEntity savedFile = fileRepository.save(fileEntity);
 
+        FileUploadedEvent event = new FileUploadedEvent(
+           savedFile.getId(),
+           savedFile.getOwnerId(),
+           savedFile.getOriginalName(),
+           savedFile.getSizeBytes(),
+           savedFile.getUploadedAt() 
+        );
+
+        String payload;
+
+        try {
+            payload = objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            throw new EventSerializationException("Failed to serialize upload file event: " + savedFile.getId(), e);
+        }
+        
         OutboxEventEntity outboxEvent = new OutboxEventEntity(
             AggregateType.FILE,
             savedFile.getId(),
             EventType.FILE_UPLOADED,
-            "payload"
+            payload
         );
         outboxEventRepository.save(outboxEvent);
 
