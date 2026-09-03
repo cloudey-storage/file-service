@@ -1,6 +1,7 @@
 package com.ilyanin.file_service.service;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ilyanin.file_service.api.dto.FileMetadataResponse;
 import com.ilyanin.file_service.domain.AggregateType;
 import com.ilyanin.file_service.domain.EventType;
+import com.ilyanin.file_service.event.FileDeletedEvent;
 import com.ilyanin.file_service.event.FileUploadedEvent;
 import com.ilyanin.file_service.exception.EventSerializationException;
 import com.ilyanin.file_service.exception.FileStorageException;
@@ -19,6 +21,7 @@ import com.ilyanin.file_service.persistence.entity.OutboxEventEntity;
 import com.ilyanin.file_service.persistence.repository.FileRepository;
 import com.ilyanin.file_service.persistence.repository.OutboxEventRepository;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 @Service
 public class FileServiceImpl {
@@ -92,5 +95,42 @@ public class FileServiceImpl {
         fileCacheService.evict(ownerId);
 
         return mapper.toResponse(savedFile);
+    }
+
+    @Transactional
+    public void hardDeleteFile(UUID fileId) {
+
+        FileEntity entity = fileRepository.findByIdAndIsDeletedFalse(fileId).orElseThrow(
+            () -> new EntityNotFoundException("Cannot find file with id: " + fileId)
+        );
+
+        fileStorageService.delete(entity.getMinioKey());
+        fileRepository.delete(entity);
+
+        FileDeletedEvent event = new FileDeletedEvent(
+            entity.getId(),
+            entity.getOwnerId(),
+            entity.getOriginalName(),
+            LocalDateTime.now()
+        );
+
+        String payload;
+
+        try {
+            payload = objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            throw new EventSerializationException("Failed to serialize delete file event: " + entity.getId(), e);
+        }
+
+        OutboxEventEntity outboxEvent = new OutboxEventEntity(
+            AggregateType.FILE,
+            entity.getId(),
+            EventType.FILE_DELETED,
+            payload
+        );
+
+        outboxEventRepository.save(outboxEvent);
+
+        fileCacheService.evict(entity.getOwnerId());
     }
 }
