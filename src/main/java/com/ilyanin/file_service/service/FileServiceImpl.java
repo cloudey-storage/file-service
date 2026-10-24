@@ -104,7 +104,7 @@ public class FileServiceImpl {
             () -> new EntityNotFoundException("Cannot find file with id: " + fileId)
         );
 
-        fileStorageService.delete(entity.getMinioKey());
+        fileStorageService.hardDelete(entity.getMinioKey());
         fileRepository.delete(entity);
 
         FileDeletedEvent event = new FileDeletedEvent(
@@ -119,7 +119,7 @@ public class FileServiceImpl {
         try {
             payload = objectMapper.writeValueAsString(event);
         } catch (JsonProcessingException e) {
-            throw new EventSerializationException("Failed to serialize delete file event: " + entity.getId(), e);
+            throw new EventSerializationException("Failed to serializehardDelete file event: " + entity.getId(), e);
         }
 
         OutboxEventEntity outboxEvent = new OutboxEventEntity(

@@ -55,7 +55,7 @@ public class FileStorageService {
         }
     }
 
-    public void delete(String key) {
+    public void hardDelete(String key) {
         try {
             client.removeObject(
                 RemoveObjectArgs.builder()
@@ -64,7 +64,7 @@ public class FileStorageService {
                 .build()
             );
         } catch (Exception e) {
-            throw new FileStorageException("Failed to delete file: " + key, e);
+            throw new FileStorageException("Failed tohardDelete file: " + key, e);
         }
     }
 }

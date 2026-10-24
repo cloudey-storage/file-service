@@ -7,7 +7,7 @@ public record FileDeletedEvent(
     UUID fileId,
     UUID ownerId,
     String originalName,
-    LocalDateTime deletedAt
+    LocalDateTime hardDeletedAt
 ) {
 
 }
