@@ -81,7 +81,7 @@ MinIO Console (для визуальной проверки бакетов): `ht
 ./mvnw clean install
 ```
 
-> **Известная проблема:** тест `contextLoads` временно отключён (`@Disabled`) — Testcontainers не находит Docker environment из JVM-процесса при запуске через IDE, несмотря на корректные права доступа к Docker-сокету. Отслеживается в [issue #4](../../issues/4).
+Интеграционные тесты поднимают PostgreSQL, Redis, Kafka и MinIO через Testcontainers, поэтому нужен запущенный Docker.
 
 ## Статус разработки
 
@@ -91,7 +91,7 @@ MinIO Console (для визуальной проверки бакетов): `ht
 - Базовая конфигурация проекта (`pom.xml`, `application.yml`)
 - Инфраструктура для локальной разработки (`docker-compose.yml`)
 - Flyway-миграции схемы БД
-- Testcontainers-конфигурация для интеграционных тестов (частично — см. известную проблему выше)
+- Testcontainers-конфигурация для интеграционных тестов (PostgreSQL, Redis, Kafka, MinIO)
 
 В работе:
 - Entity/Repository слой

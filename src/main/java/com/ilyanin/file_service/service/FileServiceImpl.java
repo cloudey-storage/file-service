@@ -7,8 +7,6 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ilyanin.file_service.api.dto.FileMetadataResponse;
 import com.ilyanin.file_service.domain.AggregateType;
 import com.ilyanin.file_service.domain.EventType;
@@ -23,6 +21,9 @@ import com.ilyanin.file_service.persistence.repository.OutboxEventRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
+
 @Service
 public class FileServiceImpl {
 
@@ -31,7 +32,7 @@ public class FileServiceImpl {
     private final OutboxEventRepository outboxEventRepository;
     private final FileCacheService fileCacheService;
     private final Mapper mapper;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     
     public FileServiceImpl(
         FileStorageService fileStorageService, 
@@ -39,14 +40,14 @@ public class FileServiceImpl {
         OutboxEventRepository outboxEventRepository,
         FileCacheService fileCacheService,
         Mapper mapper,
-        ObjectMapper objectMapper
+        JsonMapper jsonMapper
     ) {
         this.fileStorageService = fileStorageService;
         this.fileRepository = fileRepository;
         this.outboxEventRepository = outboxEventRepository;
         this.fileCacheService = fileCacheService;
         this.mapper = mapper;
-        this.objectMapper = objectMapper;
+        this.jsonMapper = jsonMapper;
     }
 
 
@@ -79,8 +80,8 @@ public class FileServiceImpl {
         String payload;
 
         try {
-            payload = objectMapper.writeValueAsString(event);
-        } catch (JsonProcessingException e) {
+            payload = jsonMapper.writeValueAsString(event);
+        } catch (JacksonException e) {
             throw new EventSerializationException("Failed to serialize upload file event: " + savedFile.getId(), e);
         }
         
@@ -117,8 +118,8 @@ public class FileServiceImpl {
         String payload;
 
         try {
-            payload = objectMapper.writeValueAsString(event);
-        } catch (JsonProcessingException e) {
+            payload = jsonMapper.writeValueAsString(event);
+        } catch (JacksonException e) {
             throw new EventSerializationException("Failed to serializehardDelete file event: " + entity.getId(), e);
         }
 
